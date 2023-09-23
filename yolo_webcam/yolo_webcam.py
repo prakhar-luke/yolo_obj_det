@@ -5,7 +5,7 @@ import math
 
 
 # cam = 0  # for webcam
-# cam = 'http://192.168.1.100:4747/video'  # for droid cam
+# cam = 'http://xxx.xxx.xxx.xxx:xxxx/video'  # for droid cam
 cam = '../Videos/bikes.mp4'  # for videos
 cap = cv2.VideoCapture(cam)  # for videos
 # cap.set(3, 1280)
