@@ -6,10 +6,10 @@ import math
 from sort import *
 
 
-cam = '../Videos/cars.mp4'  # for videos
+cam = '../Videos/people.mp4'  # for videos
 cap = cv2.VideoCapture(cam)  # for videos
 
-model = YOLO('../yolo_weights/yolov8l.pt')
+model = YOLO('../yolo_weights/yolov8n.pt')
 className = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
               "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
               "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
@@ -26,8 +26,10 @@ mask = cv2.imread('mask.png')
 
 # tracking
 tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
-limits = [400, 297, 673, 297]
-total_car_count = []
+limitsUP = [103, 162, 296, 161]
+limitsDOWN = [527, 489, 735, 489]
+total_UP_count = []
+total_DOWN_count = []
 
 while True:
     success, img = cap.read()
@@ -35,7 +37,7 @@ while True:
         break
     img_region = cv2.bitwise_and(img, mask)
     imgGraphic = cv2.imread('graphics.png', cv2.IMREAD_UNCHANGED)
-    img = cvzone.overlayPNG(img, imgGraphic, (0, 0))
+    img = cvzone.overlayPNG(img, imgGraphic, (730, 260))
 
     results = model(img_region, stream=True)
     detections = np.empty((0, 5))
@@ -51,34 +53,38 @@ while True:
             conf = math.ceil((box.conf[0]*100))/100
             cls = int(box.cls[0])
             current_class = className[cls]
-            if (current_class == "car" or current_class == "truck" or current_class == "bus"
-                    or current_class == "motorbike" and conf > 0.3):
+            if current_class == 'person' and conf > 0.3:
                 currentArray = np.array([x1, y1, x2, y2, conf])
                 detections = np.vstack((detections, currentArray))
 
     tracker_results = tracker.update(detections)
-    cv2.line(img, (limits[0], limits[1]), (limits[2], limits[3]), (0, 0, 255), 4)
+    cv2.line(img, (limitsUP[0], limitsUP[1]), (limitsUP[2], limitsUP[3]), (0, 0, 255), 4)
+    cv2.line(img, (limitsDOWN[0], limitsDOWN[1]), (limitsDOWN[2], limitsDOWN[3]), (0, 0, 255), 4)
 
     for result in tracker_results:
         x1, y1, x2, y2, ID = result
         x1, y1, x2, y2, ID = int(x1), int(y1), int(x2), int(y2), int(ID)
         # print(result)
         w, h = x2 - x1, y2-y1
-        cvzone.cornerRect(img, (x1, y1, w, h), l=10, t=2, colorR=(255, 0, 255), colorC=(0, 0, 255), rt=1)
-        # cvzone.putTextRect(img, f'{ID}', (max(0, x1), max(40, y1)), scale=1,
-        #                    thickness=2, colorT=(255, 255, 255), colorR=(0, 0, 255), offset=5)
+        cvzone.cornerRect(img, (x1, y1, w, h), l=10, t=5, colorR=(0, 255, 255), colorC=(0, 255, 0), rt=2)
+        cvzone.putTextRect(img, f'{ID}', (max(0, x1), max(40, y1)), scale=2,
+                           thickness=3, colorT=(255, 255, 255), colorR=(0, 255, 0), offset=5)
         cx, cy = x1+w//2, y1 + h//2  # center points
         # cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
 
-        if limits[0] < cx < limits[2] and limits[1]-15 < cy < limits[1]+15:
-            if total_car_count.count(ID) == 0:
-                total_car_count.append(ID)
-                cv2.line(img, (limits[0], limits[1]), (limits[2], limits[3]), (0, 255, 0), 4)
-                cvzone.cornerRect(img, (x1, y1, w, h), l=10, t=2, colorR=(0, 255, 255), colorC=(0, 255, 0), rt=1)
-                # cvzone.putTextRect(img, f'{ID}', (max(0, x1), max(40, y1)), scale=1,
-                #                    thickness=2, colorT=(255, 255, 255), colorR=(0, 255, 0), offset=5)
+        if limitsUP[0] < cx < limitsUP[2] and limitsUP[1]-15 < cy < limitsUP[1]+15:
+            if total_UP_count.count(ID) == 0:
+                total_UP_count.append(ID)
+                cv2.line(img, (limitsUP[0], limitsUP[1]), (limitsUP[2], limitsUP[3]), (0, 255, 0), 4)
 
-    cv2.putText(img, str(len(total_car_count)), (255, 100), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 8)
+        if limitsDOWN[0] < cx < limitsDOWN[2] and limitsDOWN[1]-15 < cy < limitsDOWN[1]+15:
+            if total_DOWN_count.count(ID) == 0:
+                total_DOWN_count.append(ID)
+                cv2.line(img, (limitsDOWN[0], limitsDOWN[1]), (limitsDOWN[2], limitsDOWN[3]), (0, 255, 0), 4)
+
+
+    cv2.putText(img, str(len(total_UP_count)), (929, 345), cv2.FONT_HERSHEY_PLAIN, 5, (139, 195, 75), 7)
+    cv2.putText(img, str(len(total_DOWN_count)), (1191, 345), cv2.FONT_HERSHEY_PLAIN, 5, (50, 50, 230), 7)
     cv2.imshow("Counting Cars", img)
 
     # cv2.waitKey(0)
